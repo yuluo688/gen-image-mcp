@@ -1,10 +1,10 @@
 import { decodeBase64Image, type DecodedImage } from "../images/decode.js";
 import { assertImageCount, readLocalImage } from "../images/files.js";
 import {
-  formatHttpError,
   postForm,
   postJson,
   UpstreamError,
+  upstreamHttpError,
 } from "../shared/http.js";
 import { asRecord } from "../shared/object.js";
 
@@ -67,12 +67,12 @@ export async function generateImages(
     },
   );
   if (!result.ok)
-    throw new UpstreamError(
-      formatHttpError(result, "POST /v1/images/generations"),
-    );
+    throw upstreamHttpError(result, "POST /v1/images/generations");
   const images = parseImagesResponse(result.json);
   if (images.length === 0) {
-    throw new UpstreamError("Images API returned no image data");
+    throw new UpstreamError("Images API returned no image data", {
+      category: "empty_response",
+    });
   }
   return images;
 }
@@ -123,10 +123,12 @@ export async function editImages(
     timeoutMs: client.timeoutMs,
   });
   if (!result.ok)
-    throw new UpstreamError(formatHttpError(result, "POST /v1/images/edits"));
+    throw upstreamHttpError(result, "POST /v1/images/edits");
   const images = parseImagesResponse(result.json);
   if (images.length === 0) {
-    throw new UpstreamError("Images edits API returned no image data");
+    throw new UpstreamError("Images edits API returned no image data", {
+      category: "empty_response",
+    });
   }
   return images;
 }

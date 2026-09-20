@@ -5,10 +5,10 @@ import {
   toDataUrl,
 } from "../images/files.js";
 import {
-  formatHttpError,
   postJson,
   snippet,
   UpstreamError,
+  upstreamHttpError,
 } from "../shared/http.js";
 import { asRecord } from "../shared/object.js";
 
@@ -228,13 +228,13 @@ export async function generateGeminiImage(
     client,
   );
   if (!result.ok)
-    throw new UpstreamError(
-      formatHttpError(result, "POST /v1/chat/completions"),
-    );
+    throw upstreamHttpError(result, "POST /v1/chat/completions");
 
   const images = extractGeminiImages(result.json);
   if (images.length === 0) {
-    throw new UpstreamError(geminiNoImageMessage(result.json, result.text));
+    throw new UpstreamError(geminiNoImageMessage(result.json, result.text), {
+      category: "empty_response",
+    });
   }
   return images;
 }

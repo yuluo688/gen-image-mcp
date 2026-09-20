@@ -89,6 +89,7 @@ test("MCP tools save images, expose resources and keep sessions isolated", async
       "edit_image",
       "generate_gemini_image",
       "generate_image",
+      "list_models",
     ]);
     assert.deepEqual((await client.listResources()).resources, []);
 
@@ -171,7 +172,7 @@ test("existing stdio entry point still completes an MCP handshake", async () => 
   });
   try {
     await client.connect(transport);
-    assert.equal((await client.listTools()).tools.length, 3);
+    assert.equal((await client.listTools()).tools.length, 4);
     assert.deepEqual((await client.listResources()).resources, []);
   } finally {
     await client.close();

@@ -19,15 +19,101 @@ export type ResourceLinkContent = {
 };
 export type ToolContent = TextContent | ImageContent | ResourceLinkContent;
 
-// 工具失败转成 MCP 错误内容，避免业务异常中断整个 stdio 会话。
-export function errorResult(text: string): {
-  isError: true;
-  content: TextContent[];
-} {
-  return { isError: true, content: [{ type: "text", text }] };
+export type AttemptOutcome = "success" | "error";
+
+export type AttemptRecord = {
+  model: string;
+  outcome: AttemptOutcome;
+  elapsed_ms: number;
+  error_category?: string;
+  http_status?: number;
+};
+
+export type ModelSwitch = { from: string; to: string };
+
+export type ExecutionSummary = {
+  model: string | null;
+  elapsed_ms: number;
+  attempt_count: number;
+  retry_count: number;
+  model_switches: ModelSwitch[];
+  attempts: AttemptRecord[];
+};
+
+export type StructuredImage = {
+  path: string;
+  name: string;
+  mime_type: string;
+  byte_size: number;
+  uri: string;
+};
+
+export type GenerationStructuredContent = ExecutionSummary & {
+  images: StructuredImage[];
+  error?: {
+    message: string;
+    category?: string;
+    http_status?: number;
+  };
+};
+
+function mergeSummary(
+  summary?: Partial<ExecutionSummary>,
+): ExecutionSummary {
+  return {
+    model: null,
+    elapsed_ms: 0,
+    attempt_count: 0,
+    retry_count: 0,
+    ...summary,
+    model_switches: summary?.model_switches ?? [],
+    attempts: summary?.attempts ?? [],
+  };
 }
 
-export function successResult(saved: SavedImage[]): { content: ToolContent[] } {
+function toStructuredImages(saved: SavedImage[]): StructuredImage[] {
+  return saved.map((item) => ({
+    path: item.absPath,
+    name: item.name,
+    mime_type: item.mimeType,
+    byte_size: item.bytes.length,
+    uri: item.uri,
+  }));
+}
+
+// 工具失败转成 MCP 错误内容，避免业务异常中断整个 stdio 会话。
+export function errorResult(
+  text: string,
+  summary?: Partial<ExecutionSummary>,
+  errorMeta?: { category?: string; http_status?: number },
+): {
+  isError: true;
+  content: TextContent[];
+  structuredContent: GenerationStructuredContent;
+} {
+  const base = mergeSummary(summary);
+  const error: GenerationStructuredContent["error"] = { message: text };
+  if (errorMeta?.category !== undefined) error.category = errorMeta.category;
+  if (errorMeta?.http_status !== undefined)
+    error.http_status = errorMeta.http_status;
+  return {
+    isError: true,
+    content: [{ type: "text", text }],
+    structuredContent: {
+      ...base,
+      images: [],
+      error,
+    },
+  };
+}
+
+export function successResult(
+  saved: SavedImage[],
+  summary?: Partial<ExecutionSummary>,
+): {
+  content: ToolContent[];
+  structuredContent: GenerationStructuredContent;
+} {
   const lines: string[] = [];
   for (const item of saved) {
     lines.push(`saved: ${item.absPath}`);
@@ -51,5 +137,11 @@ export function successResult(saved: SavedImage[]): { content: ToolContent[] } {
       mimeType: item.mimeType,
     });
   }
-  return { content };
+  return {
+    content,
+    structuredContent: {
+      ...mergeSummary(summary),
+      images: toStructuredImages(saved),
+    },
+  };
 }

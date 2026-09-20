@@ -49,7 +49,7 @@ GitHub 项目：[yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-m
 
 将示例地址、Key 和模型替换为实际值。两组模型至少配置一组；不使用的组应删除对应环境变量，不要填写空字符串。图片读写发生在启动此 MCP 的机器上，建议使用绝对路径。
 
-配置完成后，连接或重启该 MCP 服务，客户端应能发现三个工具。直接在终端启动时，服务会等待标准输入中的 MCP 消息，不会打开网页或交互式命令菜单。
+配置完成后，连接或重启该 MCP 服务，客户端应能发现四个工具。直接在终端启动时，服务会等待标准输入中的 MCP 消息，不会打开网页或交互式命令菜单。
 
 生产使用建议将参数中的包名固定为已发布版本，例如 `gen-image-mcp@<version>`，避免升级时行为变化。首次运行需要能够访问 npm 仓库。
 
@@ -84,20 +84,22 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 - `model` 只能指定该组已经配置的模型。
 - 开启自动切换后，上游 HTTP 错误、网络错误、超时或无有效图片会触发下一模型。
 - 显式指定模型时，从该项开始，只向后尝试；不会绕回列表开头。
-- 每个模型最多尝试一次，成功即停止，全部失败返回最后一个模型的错误。
+- 明确的容量不足或限流（含外层 500 包裹内层 503 / no capacity）会先对同一模型做有限退避重试（默认最多额外 2 次，并尊重有上界的 `Retry-After`）；超时、网络、鉴权、内容策略等错误不重试。
+- 非上述可重试错误，或同模型重试仍失败后，才按开关切换下一模型；成功即停止，全部失败返回最后一个模型的结构化错误（保留 HTTP 状态与类别）。
 - 每次调用重新从第一项或指定模型开始，不永久改变模型顺序。
-- 单次调用参数 `auto_fallback` 可覆盖全局开关；设为 `false` 时只尝试当前模型。
+- 单次调用参数 `auto_fallback` 可覆盖全局开关；设为 `false` 时只尝试当前模型（仍可对容量/限流做同模型重试）。
 - 参数错误、本地图片读取错误和保存失败不触发模型切换。
 - 两组模型不会跨接口切换。未配置某组时，其对应工具返回错误。
 
-开启切换后，客户端的请求超时应大于“单次请求超时 × 最多尝试的模型数”，并为文件读写留出余量。多次上游请求可能产生额外费用。
+客户端的请求超时应为每个模型最多 3 次请求及两次退避等待留出余量；开启切换时还需乘以最多尝试的模型数，并考虑文件读写时间。无 `Retry-After` 时默认等待 400ms、800ms，单次等待最多 5 秒。普通 503 不视为明确容量不足。多次上游请求可能产生额外费用。
 
 ## 工具调用
 
-以下 JSON 是工具参数，不是终端命令。所有工具都要求 `prompt` 和 `output_path`；示例省略 `model`，使用对应组第一个模型。
+以下 JSON 是工具参数，不是终端命令。三个生图/编辑工具都要求 `prompt` 和 `output_path`；示例省略 `model`，使用对应组第一个模型。`list_models` 无需参数。
 
 | 工具 | 用途 | 上游端点 |
 | --- | --- | --- |
+| `list_models` | 查询已配置模型、所属接口组、默认模型和对应工具 | 无网络请求 |
 | `generate_image` | 文本生成图片 | `POST /v1/images/generations` |
 | `edit_image` | 编辑或合并本地图片 | `POST /v1/images/edits` |
 | `generate_gemini_image` | Gemini 文生图或参考图生成 | `POST /v1/chat/completions` |
@@ -116,7 +118,7 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 }
 ```
 
-可选参数：`model`、`size`、`quality`、`n`、`output_format`、`auto_fallback`。`size` 默认 `auto`；`n` 为 1–4，默认 1；`quality` 可取 `low`、`medium`、`high`、`auto`；`output_format` 可取 `png`、`jpeg`、`webp`，省略时由上游决定。
+可选参数：`filename`、`model`、`size`、`quality`、`n`、`output_format`、`auto_fallback`。`size` 默认 `auto`；`n` 为 1–4，默认 1；`quality` 可取 `low`、`medium`、`high`、`auto`；`output_format` 可取 `png`、`jpeg`、`webp`，省略时由上游决定。
 
 ### edit_image
 
@@ -129,7 +131,7 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 }
 ```
 
-`images` 必填，包含 1–16 个本地图片路径。可选参数：`mask`（本地蒙版路径）、`model`、`size`、`quality`、`auto_fallback`。蒙版和编辑能力取决于上游模型。
+`images` 必填，包含 1–16 个本地图片路径。可选参数：`filename`、`mask`（本地蒙版路径）、`model`、`size`、`quality`、`auto_fallback`。蒙版和编辑能力取决于上游模型。
 
 ### generate_gemini_image
 
@@ -143,17 +145,40 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 }
 ```
 
-省略 `images` 即为纯文生图。可选参数：`images`、`model`、`aspect_ratio`、`auto_fallback`。
+省略 `images` 即为纯文生图。可选参数：`filename`、`images`、`model`、`aspect_ratio`、`auto_fallback`。
 
 支持的宽高比：`1:1`、`2:3`、`3:2`、`3:4`、`4:3`、`4:5`、`5:4`、`9:16`、`16:9`、`21:9`。
+
+### list_models
+
+调用参数为 `{}`。返回文本和 `structuredContent`，包含按配置顺序排列的 `groups`：每组有 `api`（`images` 或 `gemini`）、`models`、`default_model` 和 `tools`。未配置的组返回空列表及 `default_model: null`；顶层 `auto_fallback` 表示全局切换设置。
+
+此工具只读取本地配置，不发网络请求、不返回 API Key 或服务地址。`availability_checked: false` 明确表示没有检查模型当前是否可用。
+
+### AI 文件命名
+
+由调用方 AI 根据主题填写可选 `filename`，服务本身不额外调用模型命名。三个生图/编辑工具均支持：
+
+```json
+{
+  "prompt": "夕阳花园中的优雅成年女性人像，自然光摄影",
+  "output_path": "exports/",
+  "filename": "夕阳花园人像.png",
+  "n": 1
+}
+```
+
+`filename` 是单个文件名，不是路径，可包含中文，扩展名可省略，最终后缀以实际图片格式为准。名称最多 200 个 UTF-8 字节，为序号和后缀预留空间。提供该参数时 `output_path` 必须为目录；空名称、路径分隔符、Windows 保留名称等无效输入会在生图请求前拒绝。
+
+同名输出通过独占创建和递增序号防覆盖，例如 `夕阳花园人像.png`、`夕阳花园人像-2.png`、`夕阳花园人像-3.png`，最多尝试 1000 个候选名称。多图输出先添加图片序号，再处理已有文件冲突。不传 `filename` 时保持原有命名方式。
 
 ## 文件与输出
 
 - 输入和输出的相对路径均相对于 MCP 进程工作目录，而不是 npm 缓存或包安装目录；不确定工作目录时使用绝对路径。
 - `output_path` 以 `/` 或 `\` 结尾、指向现有目录，或没有受支持的图片扩展名时，按目录处理。
-- 目录输出命名为 `{slug}-{YYYYMMDD-HHmmss}[-序号].扩展名`；纯中文提示词的 slug 为 `image`，时间戳使用本地时间。
+- 未指定 `filename` 时，目录输出命名为 `{slug}-{YYYYMMDD-HHmmss}-{随机UUID}[-序号].扩展名`；纯中文提示词的 slug 为 `image`，时间戳使用本地时间。
 - 文件输出保留指定基名；多张图片插入 `-1`、`-2` 等序号，扩展名以实际图片格式为准。
-- 缺少的父目录会自动创建。相同路径直接覆盖，不备份；同一秒内的同名目录输出也可能覆盖。
+- 缺少的父目录会自动创建。直接将 `output_path` 设为文件时仍覆盖，不备份；目录输出采用独占创建，不覆盖已有文件。使用 `filename` 时自动尝试序号后缀，其他目录输出遇到碰撞则报错。
 - 最多输入 16 张图片，每个本地输入文件最多 50 MiB。
 - 图片响应只接受可识别的 PNG、JPEG、WebP、GIF Base64 或 data URL，不会自动下载上游返回的普通远程 URL。
 
@@ -164,6 +189,20 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 1. 保存路径和 `gen-image:///<id>` 资源 URI 的文本。
 2. 第一张图片的内联预览，仅在其解码大小不超过 2 MiB 时附带。
 3. 每张图片的 `resource_link`。
+
+三个生图/编辑工具还返回 `structuredContent`，便于客户端直接处理，不必解析文本路径：
+
+| 字段 | 含义 |
+| --- | --- |
+| `images` | 文件列表，每项包含 `path`、`name`、`mime_type`、`byte_size`、`uri`，不重复携带图片 Base64 |
+| `model` | 实际成功的模型；失败时为最后尝试的模型，没有上游尝试时为 `null` |
+| `elapsed_ms` | 总耗时，包含重试等待与文件保存 |
+| `attempt_count` | 上游尝试次数，不计生图前的本地校验失败 |
+| `retry_count` | 同一模型连续再次尝试的次数，不把切换模型算作重试 |
+| `model_switches` | 按顺序记录模型切换，每项为 `from`、`to` |
+| `attempts` | 每次尝试的 `model`、`outcome`、`elapsed_ms`；上游失败时可含 `error_category`、`http_status` |
+
+执行失败时保留 `isError: true` 和错误文本，并返回上述摘要、空 `images` 及 `error`。SDK 输入 schema 校验失败发生在执行前，不保证附带执行摘要。摘要不额外记录提示词、密钥或完整请求/响应正文，也不新增历史数据库。
 
 客户端可以通过 `resources/list` 列出当前服务实例保存的图片，再用 `resources/read` 读取完整 Base64 内容；资源读取不受 2 MiB 预览限制。服务重启后资源列表清空，但已经保存的文件不会删除。
 

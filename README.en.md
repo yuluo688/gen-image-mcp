@@ -49,7 +49,7 @@ The following generic example uses `mcpServers`, `command`, `args` and `env`. Cl
 
 Replace the endpoint, key and model names with actual values. Configure at least one model group; remove the environment variable for an unused group instead of setting it to an empty string. Image files are read and written on the machine running this MCP server. Absolute paths are recommended.
 
-Connect or restart the MCP server after configuring it. The client should discover three tools. When started directly in a terminal, the server waits for MCP messages on standard input; it does not open a web page or an interactive command menu.
+Connect or restart the MCP server after configuring it. The client should discover four tools. When started directly in a terminal, the server waits for MCP messages on standard input; it does not open a web page or an interactive command menu.
 
 For production use, pin the package to a published version, such as `gen-image-mcp@<version>`, to avoid unexpected behavior changes after upgrades. The first run requires access to the npm registry.
 
@@ -84,20 +84,22 @@ Model lists must not contain duplicates or empty entries. Invalid URLs, keys or 
 - An explicit `model` must already be configured in that group.
 - With automatic fallback enabled, upstream HTTP errors, network errors, timeouts or responses without valid images trigger the next model.
 - An explicit model selection starts at that entry and only moves forward; it never wraps to the beginning.
-- Each model is tried at most once. Success stops the sequence; if all fail, the last model's error is returned.
+- Explicit capacity or rate-limit failures (including outer HTTP 500 wrapping an inner 503 / no capacity) get bounded same-model backoff retries first (default up to 2 extra attempts, with a capped `Retry-After`); timeouts, network, auth, and content-policy errors are not retried.
+- After non-retryable failures, or once same-model retries are exhausted, the next model is tried when fallback is enabled. Success stops the sequence; if all fail, the last model's structured error is returned (HTTP status and category preserved).
 - Each new call starts from the first or explicitly selected model, without permanently changing the order.
-- Per-call `auto_fallback` overrides the global switch. When false, only the selected model is attempted.
+- Per-call `auto_fallback` overrides the global switch. When false, only the selected model is attempted (capacity/rate-limit same-model retries still apply).
 - Invalid arguments, local input errors and save failures do not trigger fallback.
 - Models never switch across API groups. Calling a tool with an unconfigured group returns an error.
 
-When fallback is enabled, the client's request timeout should exceed the per-request timeout multiplied by the maximum number of model attempts, with extra time for file I/O. Additional upstream requests may incur additional charges.
+Allow up to 3 requests and two backoff waits per model in the client's timeout; multiply by the number of models when fallback is enabled and leave room for file I/O. Without `Retry-After`, waits default to 400ms and 800ms, capped at 5 seconds per wait. A generic 503 is not treated as confirmed capacity exhaustion. Additional upstream requests may incur additional charges.
 
 ## Tools
 
-The following JSON objects are tool arguments, not terminal commands. Every tool requires `prompt` and `output_path`. Examples omit `model` to use the first model in the corresponding group.
+The following JSON objects are tool arguments, not terminal commands. All three generation/editing tools require `prompt` and `output_path`. Examples omit `model` to use the first model in the corresponding group. `list_models` takes no arguments.
 
 | Tool | Purpose | Upstream endpoint |
 | --- | --- | --- |
+| `list_models` | List configured models, API groups, defaults and corresponding tools | No network request |
 | `generate_image` | Generate images from text | `POST /v1/images/generations` |
 | `edit_image` | Edit or combine local images | `POST /v1/images/edits` |
 | `generate_gemini_image` | Gemini text-to-image or reference-image generation | `POST /v1/chat/completions` |
@@ -116,7 +118,7 @@ The following JSON objects are tool arguments, not terminal commands. Every tool
 }
 ```
 
-Optional arguments: `model`, `size`, `quality`, `n`, `output_format`, `auto_fallback`. `size` defaults to `auto`. `n` is 1–4 and defaults to 1. `quality` accepts `low`, `medium`, `high`, `auto`. `output_format` accepts `png`, `jpeg`, `webp`; if omitted, the upstream service decides the format.
+Optional arguments: `filename`, `model`, `size`, `quality`, `n`, `output_format`, `auto_fallback`. `size` defaults to `auto`. `n` is 1–4 and defaults to 1. `quality` accepts `low`, `medium`, `high`, `auto`. `output_format` accepts `png`, `jpeg`, `webp`; if omitted, the upstream service decides the format.
 
 ### edit_image
 
@@ -129,7 +131,7 @@ Optional arguments: `model`, `size`, `quality`, `n`, `output_format`, `auto_fall
 }
 ```
 
-`images` is required and must contain 1–16 local image paths. Optional arguments: `mask` (local mask path), `model`, `size`, `quality`, `auto_fallback`. Mask support and editing capabilities depend on the upstream model.
+`images` is required and must contain 1–16 local image paths. Optional arguments: `filename`, `mask` (local mask path), `model`, `size`, `quality`, `auto_fallback`. Mask support and editing capabilities depend on the upstream model.
 
 ### generate_gemini_image
 
@@ -143,17 +145,40 @@ Optional arguments: `model`, `size`, `quality`, `n`, `output_format`, `auto_fall
 }
 ```
 
-Omit `images` for text-only generation. Optional arguments: `images`, `model`, `aspect_ratio`, `auto_fallback`.
+Omit `images` for text-only generation. Optional arguments: `filename`, `images`, `model`, `aspect_ratio`, `auto_fallback`.
 
 Supported aspect ratios: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`.
+
+### list_models
+
+Call with `{}`. Returns text and `structuredContent` with ordered `groups`, each containing `api` (`images` or `gemini`), `models`, `default_model` and `tools`. Unconfigured groups have empty model lists and `default_model: null`. Top-level `auto_fallback` describes the global setting.
+
+This tool only reads local configuration, makes no network requests, and does not return API keys or service URLs. `availability_checked: false` means configured models have not been checked for live availability.
+
+### AI-provided filenames
+
+The calling AI can provide an optional `filename` based on the image theme. The server does not make an extra model call for naming. All three generation/editing tools support it:
+
+```json
+{
+  "prompt": "An elegant adult woman in a sunset garden, natural-light photography",
+  "output_path": "exports/",
+  "filename": "sunset-garden-portrait.png",
+  "n": 1
+}
+```
+
+`filename` is a single basename, not a path. Unicode names are supported, the extension is optional, and the actual image format determines the saved extension. Names are limited to 200 UTF-8 bytes to leave room for suffixes. With this argument, `output_path` must be a directory. Empty names, path separators, Windows reserved names and other invalid names are rejected before generation.
+
+Exclusive creation with numbered suffixes prevents overwrites: `sunset-garden-portrait.png`, `sunset-garden-portrait-2.png`, `sunset-garden-portrait-3.png`, etc., with at most 1000 candidate names. Multiple images receive image indices before handling existing-file conflicts. Omitting `filename` retains the existing naming behavior.
 
 ## Files and output
 
 - Relative input and output paths resolve against the MCP process's working directory, not the npm cache or package installation directory. Use absolute paths if the working directory is uncertain.
 - `output_path` is treated as a directory if it ends in `/` or `\`, points to an existing directory, or has no supported image extension.
-- Directory outputs use `{slug}-{YYYYMMDD-HHmmss}[-index].extension`. A Chinese-only prompt uses `image` as the slug; timestamps use local time.
+- Without `filename`, directory outputs use `{slug}-{YYYYMMDD-HHmmss}-{randomUUID}[-index].extension`. A Chinese-only prompt uses `image` as the slug; timestamps use local time.
 - File outputs retain the specified basename. Multiple images get `-1`, `-2`, etc., and the extension follows the actual image format.
-- Missing parent directories are created automatically. Existing paths are overwritten without backup; same-name directory outputs within the same second can also collide.
+- Missing parent directories are created automatically. Setting `output_path` directly to a file still overwrites without backup. Directory outputs use exclusive creation and never overwrite; with `filename`, collisions try numbered suffixes, otherwise they report an error.
 - A maximum of 16 input images is allowed, with a maximum of 50 MiB per local input file.
 - Image responses must contain recognizable PNG, JPEG, WebP or GIF bytes as Base64 or a data URL. Plain remote URLs returned by the upstream service are not downloaded automatically.
 
@@ -164,6 +189,20 @@ A successful call returns, in order:
 1. Text containing saved paths and `gen-image:///<id>` resource URIs.
 2. An inline preview of the first image, only when its decoded size is at most 2 MiB.
 3. A `resource_link` for each image.
+
+The three generation/editing tools also return `structuredContent`, so clients do not need to parse text paths:
+
+| Field | Meaning |
+| --- | --- |
+| `images` | Files with `path`, `name`, `mime_type`, `byte_size`, `uri`; no duplicate Base64 payload |
+| `model` | Actual successful model, or the last attempted model on failure; `null` when no upstream attempt occurred |
+| `elapsed_ms` | Total elapsed time including retry waits and file saving |
+| `attempt_count` | Upstream attempts, excluding pre-generation local validation failures |
+| `retry_count` | Consecutive extra attempts of the same model; switching models is not a retry |
+| `model_switches` | Ordered model switches, each with `from` and `to` |
+| `attempts` | Each attempt's `model`, `outcome`, `elapsed_ms`, plus optional `error_category` and `http_status` on upstream failure |
+
+Execution failures retain `isError: true` and error text, with the same summary, empty `images` and an `error` object. SDK input-schema rejection happens before execution and may not include this summary. Telemetry does not additionally record prompts, credentials or full request/response bodies and does not create a history database.
 
 Clients can use `resources/list` to list images saved by the current server instance and `resources/read` to retrieve the full Base64 content. Resource reads are not subject to the 2 MiB preview limit. Restarting the server clears its resource list but does not delete saved files.
 
