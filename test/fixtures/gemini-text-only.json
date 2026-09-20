@@ -1,0 +1,10 @@
+{
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "I cannot generate that image because of policy."
+      }
+    }
+  ]
+}
