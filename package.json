@@ -1,6 +1,7 @@
 {
   "name": "gen-image-mcp",
   "version": "0.1.0",
+  "license": "MIT",
   "description": "stdio MCP server for OpenAI Images API and Gemini chat image generation",
   "type": "module",
   "bin": {

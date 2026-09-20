@@ -184,3 +184,9 @@ This is a stdio MCP server, not an HTTP server or website. With valid configurat
 **Cannot find generated images**
 
 Use the absolute saved path returned by the tool. Running through `npx` does not automatically save images in the npm package directory. You can specify an absolute `output_path` directly.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE). Copyright (c) 2026 yuluo688.
+
+Commercial use, modification and distribution, including proprietary use, are permitted provided the copyright and permission notices are retained. The software is provided as is, without warranty. This license covers the project software and does not replace upstream model service terms or determine rights to generated images.
