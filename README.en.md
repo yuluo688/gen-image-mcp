@@ -2,6 +2,8 @@
 
 English | [中文](./README.md)
 
+GitHub repository: [yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-mcp)
+
 A local MCP server for generating and editing images through OpenAI-compatible APIs. Supports ordered model fallback, saves images locally, and returns previews and resource links.
 
 ## Prerequisites

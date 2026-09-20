@@ -2,6 +2,8 @@
 
 中文 | [English](./README.en.md)
 
+GitHub 项目：[yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-mcp)
+
 通过 OpenAI 兼容接口生成、编辑图片的本地 MCP 服务。支持多模型顺序切换，将图片保存到本地，并返回预览和资源链接。
 
 ## 使用前准备
