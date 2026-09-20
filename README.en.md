@@ -14,9 +14,9 @@ There is no built-in endpoint, key or model. Missing required configuration prev
 
 ## Run with npx
 
-> Publication status: `gen-image-mcp` is not currently available in the public npm registry. The following commands require the package to be published first. Replace the package name if it is ultimately published under a different name.
+Package: [`gen-image-mcp`](https://www.npmjs.com/package/gen-image-mcp).
 
-Once published, users will not need to clone the source, manually install project dependencies or build the project. `npx` downloads and caches the npm package, then runs it locally; this is not a hosted remote service.
+Users do not need to clone the source, manually install project dependencies or build the project. `npx` downloads and caches the npm package, then runs it locally; this is not a hosted remote service.
 
 Add a stdio server in your MCP client using:
 
@@ -171,7 +171,7 @@ Tool failures return `isError: true` and error text. stdout is reserved for MCP 
 
 **npx cannot find the package**
 
-Confirm the package has been published to your npm registry, then check its name and version. `gen-image-mcp` is not currently listed in the public registry, so the commands above are not yet a live installation entry point.
+Check the package name, version and npm registry URL. Run `npm view gen-image-mcp version --registry=https://registry.npmjs.org` to check the version in the public registry. Third-party mirrors may take time to synchronize.
 
 **Missing configuration or no models configured**
 
