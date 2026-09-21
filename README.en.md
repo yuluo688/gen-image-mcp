@@ -2,9 +2,20 @@
 
 English | [中文](./README.md)
 
-GitHub repository: [yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-mcp)
+[![npm version](https://img.shields.io/npm/v/gen-image-mcp?logo=npm&label=npm)](https://www.npmjs.com/package/gen-image-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-10B981)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.yuluo688%2Fgen-image-mcp)
+[![License: MIT](https://img.shields.io/badge/license-MIT-0B7BB9)](./LICENSE)
 
-A local MCP server for generating and editing images through OpenAI-compatible APIs. Supports ordered model fallback, saves images locally, and returns previews and resource links.
+A local image-workflow MCP for AI coding agents. Generate and edit images through your own OpenAI-compatible or Gemini image API, then save the results directly into a project directory.
+
+GitHub repository: [yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-mcp) | Listed in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.yuluo688%2Fgen-image-mcp)
+
+## Why use it?
+
+- **Writes directly to the local project**: generated and edited images are saved on the machine running the MCP and can immediately be used by the repository.
+- **Uses your own upstream provider**: configure the API URL, key, and models instead of depending on a hosted model service.
+- **Recovers from upstream failures**: retry capacity or rate-limit failures and move through the configured model order.
+- **Covers the image workflow**: text-to-image, local reference-image generation, and image editing all return previews and resource links.
 
 ## Prerequisites
 

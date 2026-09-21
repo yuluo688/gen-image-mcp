@@ -1,9 +1,23 @@
 {
   "name": "gen-image-mcp",
   "mcpName": "io.github.yuluo688/gen-image-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
-  "description": "stdio MCP server for OpenAI Images API and Gemini chat image generation",
+  "description": "Local MCP for OpenAI-compatible and Gemini image generation, editing, and automatic model fallback",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "image-generation",
+    "image-editing",
+    "openai-images",
+    "gemini",
+    "claude-code",
+    "cursor"
+  ],
+  "homepage": "https://github.com/yuluo688/gen-image-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/yuluo688/gen-image-mcp/issues"
+  },
   "type": "module",
   "files": [
     "dist",

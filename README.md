@@ -2,9 +2,20 @@
 
 中文 | [English](./README.en.md)
 
-GitHub 项目：[yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-mcp)
+[![npm version](https://img.shields.io/npm/v/gen-image-mcp?logo=npm&label=npm)](https://www.npmjs.com/package/gen-image-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-active-10B981)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.yuluo688%2Fgen-image-mcp)
+[![License: MIT](https://img.shields.io/badge/license-MIT-0B7BB9)](./LICENSE)
 
-通过 OpenAI 兼容接口生成、编辑图片的本地 MCP 服务。支持多模型顺序切换，将图片保存到本地，并返回预览和资源链接。
+面向 AI 编程 Agent 的本地图片工作流 MCP。通过用户自选的 OpenAI 兼容或 Gemini 图像接口生成、编辑图片，直接保存到项目目录。
+
+GitHub 项目：[yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-mcp) | 已登记 [官方 MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.yuluo688%2Fgen-image-mcp)
+
+## 为什么使用它
+
+- **直接写入本地项目**：生成或编辑的图片保存到调用 MCP 的机器，可立即被代码仓库引用。
+- **使用自己的上游服务**：自行配置 API 地址、Key 和模型，不依赖本服务托管模型。
+- **失败自动恢复**：可按配置顺序重试容量或限流错误，并切换到后续模型。
+- **覆盖完整图片流程**：支持文生图、本地参考图生成和图片编辑，并返回预览与资源链接。
 
 ## 使用前准备
 
