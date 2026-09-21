@@ -8,7 +8,7 @@ GitHub 项目：[yuluo688/gen-image-mcp](https://github.com/yuluo688/gen-image-m
 
 ## 使用前准备
 
-- 安装 Node.js，建议使用 Node.js 24 LTS；服务最低要求为 18.3。
+- 安装 Node.js，建议使用 Node.js 24 LTS；服务最低要求为 20。
 - 准备支持对应图像接口的服务地址、API Key 和模型名称。
 - 使用支持 stdio 的 MCP 客户端。
 

@@ -1,5 +1,5 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import type { McpServer } from "@modelcontextprotocol/server";
+import * as z from "zod/v4";
 import type { AppConfig } from "../config.js";
 import type { DecodedImage } from "../images/decode.js";
 import { MAX_INPUT_IMAGES } from "../images/files.js";
@@ -179,6 +179,7 @@ export function registerTools(
     {
       description:
         "List configured model groups and the tools that use them. Returns configuration only — not live availability. Does not use network, credentials, or base URL.",
+      inputSchema: z.object({}),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -203,30 +204,33 @@ export function registerTools(
     },
   );
 
-  server.tool(
+  server.registerTool(
     "generate_image",
-    "Generate images with POST /v1/images/generations (OpenAI Images API). Use for gpt-image-2 and other Images-only models. Do not send those models to chat completions.",
     {
-      prompt: promptText.describe("Text prompt for image generation"),
-      output_path: outputPath,
-      filename,
-      model,
-      auto_fallback: autoFallback,
-      size,
-      quality,
-      n: z
-        .number()
-        .int()
-        .min(1)
-        .max(4)
-        .optional()
-        .describe("Number of images, 1-4. Default 1."),
-      output_format: z
-        .enum(["png", "jpeg", "webp"])
-        .optional()
-        .describe(
-          "Output encoding. Omit to let the upstream service decide the format.",
-        ),
+      description:
+        "Generate images with POST /v1/images/generations (OpenAI Images API). Use for gpt-image-2 and other Images-only models. Do not send those models to chat completions.",
+      inputSchema: z.object({
+        prompt: promptText.describe("Text prompt for image generation"),
+        output_path: outputPath,
+        filename,
+        model,
+        auto_fallback: autoFallback,
+        size,
+        quality,
+        n: z
+          .number()
+          .int()
+          .min(1)
+          .max(4)
+          .optional()
+          .describe("Number of images, 1-4. Default 1."),
+        output_format: z
+          .enum(["png", "jpeg", "webp"])
+          .optional()
+          .describe(
+            "Output encoding. Omit to let the upstream service decide the format.",
+          ),
+      }),
     },
     async (args) =>
       execute(args, config.models, (model) =>
@@ -241,25 +245,28 @@ export function registerTools(
       ),
   );
 
-  server.tool(
+  server.registerTool(
     "edit_image",
-    "Edit or combine local images with POST /v1/images/edits (multipart). Use for gpt-image-2 image-to-image. Do not set input_fidelity for gpt-image-2.",
     {
-      prompt: promptText.describe("Edit instruction"),
-      output_path: outputPath,
-      filename,
-      images: z
-        .array(inputPath)
-        .min(1)
-        .max(MAX_INPUT_IMAGES)
-        .describe(
-          "Local image file paths to send as repeated multipart field `image` (max 16).",
-        ),
-      mask: inputPath.optional().describe("Optional local mask image path"),
-      model,
-      auto_fallback: autoFallback,
-      size,
-      quality,
+      description:
+        "Edit or combine local images with POST /v1/images/edits (multipart). Use for gpt-image-2 image-to-image. Do not set input_fidelity for gpt-image-2.",
+      inputSchema: z.object({
+        prompt: promptText.describe("Edit instruction"),
+        output_path: outputPath,
+        filename,
+        images: z
+          .array(inputPath)
+          .min(1)
+          .max(MAX_INPUT_IMAGES)
+          .describe(
+            "Local image file paths to send as repeated multipart field `image` (max 16).",
+          ),
+        mask: inputPath.optional().describe("Optional local mask image path"),
+        model,
+        auto_fallback: autoFallback,
+        size,
+        quality,
+      }),
     },
     async (args) =>
       execute(args, config.models, (model) =>
@@ -274,26 +281,29 @@ export function registerTools(
       ),
   );
 
-  server.tool(
+  server.registerTool(
     "generate_gemini_image",
-    "Generate or edit images with POST /v1/chat/completions using a Gemini image model. Do not call /v1/images/* for Gemini image models.",
     {
-      prompt: promptText.describe("Text prompt"),
-      output_path: outputPath,
-      filename,
-      images: z
-        .array(inputPath)
-        .max(MAX_INPUT_IMAGES)
-        .optional()
-        .describe(
-          "Optional local image paths sent as user content image_url data URLs (max 16).",
-        ),
-      model,
-      auto_fallback: autoFallback,
-      aspect_ratio: z
-        .enum(GEMINI_ASPECT_RATIOS)
-        .optional()
-        .describe("Optional image_config.aspect_ratio"),
+      description:
+        "Generate or edit images with POST /v1/chat/completions using a Gemini image model. Do not call /v1/images/* for Gemini image models.",
+      inputSchema: z.object({
+        prompt: promptText.describe("Text prompt"),
+        output_path: outputPath,
+        filename,
+        images: z
+          .array(inputPath)
+          .max(MAX_INPUT_IMAGES)
+          .optional()
+          .describe(
+            "Optional local image paths sent as user content image_url data URLs (max 16).",
+          ),
+        model,
+        auto_fallback: autoFallback,
+        aspect_ratio: z
+          .enum(GEMINI_ASPECT_RATIOS)
+          .optional()
+          .describe("Optional image_config.aspect_ratio"),
+      }),
     },
     async (args) =>
       execute(args, config.geminiModels, (model) =>

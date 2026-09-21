@@ -8,7 +8,7 @@ A local MCP server for generating and editing images through OpenAI-compatible A
 
 ## Prerequisites
 
-- Install Node.js. Node.js 24 LTS is recommended; the minimum server requirement is 18.3.
+- Install Node.js. Node.js 24 LTS is recommended; the minimum server requirement is 20.
 - Have an API endpoint, API key and model names supporting the relevant image APIs.
 - Use an MCP client that supports stdio.
 
