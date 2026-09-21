@@ -1,0 +1,58 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.yuluo688/gen-image-mcp",
+  "title": "gen-image MCP",
+  "description": "Local stdio MCP for OpenAI-compatible and Gemini image generation, editing, and model fallback.",
+  "repository": {
+    "url": "https://github.com/yuluo688/gen-image-mcp",
+    "source": "github"
+  },
+  "version": "0.2.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "gen-image-mcp",
+      "version": "0.2.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "GEN_IMAGE_BASE_URL",
+          "description": "Full HTTP/HTTPS base URL for the configured image API provider.",
+          "isRequired": true,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "GEN_IMAGE_API_KEY",
+          "description": "API key for the configured image API provider.",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "GEN_IMAGE_MODEL",
+          "description": "Optional comma-separated OpenAI Images API model list. Configure this or GEN_IMAGE_GEMINI_MODEL.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "GEN_IMAGE_GEMINI_MODEL",
+          "description": "Optional comma-separated Gemini image model list. Configure this or GEN_IMAGE_MODEL.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "GEN_IMAGE_AUTO_FALLBACK",
+          "description": "Optional true/false switch for sequential model fallback.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
