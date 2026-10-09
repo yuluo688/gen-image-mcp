@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { detectMime, extToMime } from "./decode.js";
+import { detectMime } from "./decode.js";
 
 // 读入内存前限制单文件大小；多图请求还需要单独限制图片数量。
 export const MAX_LOCAL_FILE_BYTES = 50 * 1024 * 1024;
@@ -45,17 +45,41 @@ export async function readLocalImage(
   }
   assertFileSize(stat.size);
   const bytes = await fs.readFile(absPath);
-  const detected = detectMime(bytes);
-  const fromExt = extToMime(path.extname(absPath));
-  const mimeType =
-    detected !== "application/octet-stream"
-      ? detected
-      : (fromExt ?? "application/octet-stream");
+  // 只按文件头识别图片；非图片文件（含改了扩展名的）在发往上游前直接拒绝，
+  // 避免把任意本地文件上传给图像服务。
+  const mimeType = detectMime(bytes);
+  if (mimeType === "application/octet-stream") {
+    throw new Error(
+      `Input file is not a supported image (PNG, JPEG, WebP or GIF): ${absPath}`,
+    );
+  }
   return {
     absPath,
     name: path.basename(absPath),
     bytes,
     mimeType,
+  };
+}
+
+export type LocalImageLoader = () => Promise<LocalFile[]>;
+
+// 一次工具调用内只读一次本地图片：同模型重试、模型切换和 response_format
+// 回退都复用同一批内容。读取失败的 Promise 也会被缓存，不会反复读盘。
+export function cachedImageLoader(
+  paths: readonly string[],
+  cwd?: string,
+): LocalImageLoader {
+  let pending: Promise<LocalFile[]> | undefined;
+  return () => {
+    pending ??= (async () => {
+      assertImageCount(paths.length);
+      const files: LocalFile[] = [];
+      for (const inputPath of paths) {
+        files.push(await readLocalImage(inputPath, cwd));
+      }
+      return files;
+    })();
+    return pending;
   };
 }
 

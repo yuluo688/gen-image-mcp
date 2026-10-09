@@ -1,8 +1,9 @@
 import { decodeBase64Image, type DecodedImage } from "../images/decode.js";
 import {
-  assertImageCount,
-  readLocalImage,
+  cachedImageLoader,
   toDataUrl,
+  type LocalFile,
+  type LocalImageLoader,
 } from "../images/files.js";
 import {
   postJson,
@@ -173,7 +174,21 @@ export type GenerateGeminiInput = {
   images?: string[];
   aspectRatio?: GeminiAspectRatio;
   cwd?: string;
+  /** 由调用方在一次工具调用内共享的读取器；缺省时按 images/cwd 新建。 */
+  loadImages?: LocalImageLoader;
 };
+
+// data URL 编码结果按文件对象缓存，重试和模型切换时不重复做 Base64 编码。
+const dataUrlCache = new WeakMap<LocalFile, string>();
+
+function cachedDataUrl(file: LocalFile): string {
+  let url = dataUrlCache.get(file);
+  if (url === undefined) {
+    url = toDataUrl(file.bytes, file.mimeType);
+    dataUrlCache.set(file, url);
+  }
+  return url;
+}
 
 export function buildGeminiBody(
   input: GenerateGeminiInput,
@@ -213,13 +228,9 @@ export async function generateGeminiImage(
   client: GeminiClient,
   input: GenerateGeminiInput,
 ): Promise<DecodedImage[]> {
-  const paths = input.images ?? [];
-  assertImageCount(paths.length);
-  const imageDataUrls: string[] = [];
-  for (const imagePath of paths) {
-    const file = await readLocalImage(imagePath, input.cwd);
-    imageDataUrls.push(toDataUrl(file.bytes, file.mimeType));
-  }
+  const loadImages =
+    input.loadImages ?? cachedImageLoader(input.images ?? [], input.cwd);
+  const imageDataUrls = (await loadImages()).map(cachedDataUrl);
 
   const body = buildGeminiBody(input, imageDataUrls);
   const result = await postJson(

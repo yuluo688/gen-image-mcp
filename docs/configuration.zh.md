@@ -65,7 +65,7 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 
 | 环境变量 | 命令行参数 | 说明 |
 | --- | --- | --- |
-| `GEN_IMAGE_BASE_URL` | `--base-url` | 必填，完整 HTTP/HTTPS 根地址；不含认证信息、查询参数和片段，不要填写具体图像端点 |
+| `GEN_IMAGE_BASE_URL` | `--base-url` | 必填，完整 HTTP/HTTPS 根地址；不含认证信息、查询参数和片段，不要填写具体图像端点（结尾多写的 `/v1` 会被自动去掉） |
 | `GEN_IMAGE_API_KEY` | `--api-key` | 必填，非空 API Key |
 | `GEN_IMAGE_MODEL` | `--model` | Images 模型列表，逗号分隔，按顺序使用 |
 | `GEN_IMAGE_GEMINI_MODEL` | `--gemini-model` | Gemini 图像模型列表，逗号分隔，按顺序使用 |
@@ -73,5 +73,7 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 | `GEN_IMAGE_TIMEOUT_MS` | `--timeout-ms` | 单次上游请求超时，默认 `120000` 毫秒；正整数，最大 `2147483647` |
 
 模型名称不能重复，也不能包含空项。URL、Key 或配置值无效时直接报错，不会替换成默认服务或模型。
+
+`generate_gemini_image` 固定请求 `<根地址>/v1/chat/completions`，需要 OpenAI 兼容网关（如 CLIProxyAPI、new-api、LiteLLM）把 Gemini 图像模型的输出转成 Chat Completions 格式；不支持直连 Google 官方接口，原因见 [常见问题](faq.zh.md)。
 
 模型选择、失败切换与重试规则见 [fallback.zh.md](fallback.zh.md)。

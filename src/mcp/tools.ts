@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import type { AppConfig } from "../config.js";
 import type { DecodedImage } from "../images/decode.js";
-import { MAX_INPUT_IMAGES } from "../images/files.js";
+import { cachedImageLoader, MAX_INPUT_IMAGES } from "../images/files.js";
 import {
   GEMINI_ASPECT_RATIOS,
   generateGeminiImage,
@@ -18,7 +18,7 @@ import {
   validateOutputFilename,
   writeImages,
 } from "../storage/save.js";
-import { UpstreamError } from "../shared/http.js";
+import { redactSecret, UpstreamError } from "../shared/http.js";
 import {
   errorResult,
   successResult,
@@ -105,7 +105,10 @@ export function registerTools(
         buildSummary(startedAt, attempts, switches, successfulModel),
       );
     } catch (err) {
-      const text = err instanceof Error ? err.message : String(err);
+      const text = redactSecret(
+        err instanceof Error ? err.message : String(err),
+        config.apiKey,
+      );
       process.stderr.write(`${text}\n`);
       const summary = buildSummary(
         startedAt,
@@ -268,8 +271,11 @@ export function registerTools(
         quality,
       }),
     },
-    async (args) =>
-      execute(args, config.models, (model) =>
+    async (args) => {
+      // 每次工具调用只读一次输入图片，重试和模型切换时复用。
+      const loadImages = cachedImageLoader(args.images);
+      const loadMask = args.mask ? cachedImageLoader([args.mask]) : undefined;
+      return execute(args, config.models, (model) =>
         editImages(config, {
           prompt: args.prompt,
           model,
@@ -277,8 +283,11 @@ export function registerTools(
           mask: args.mask,
           size: args.size,
           quality: args.quality,
+          loadImages,
+          loadMask,
         }),
-      ),
+      );
+    },
   );
 
   server.registerTool(
@@ -305,14 +314,18 @@ export function registerTools(
           .describe("Optional image_config.aspect_ratio"),
       }),
     },
-    async (args) =>
-      execute(args, config.geminiModels, (model) =>
+    async (args) => {
+      // 每次工具调用只读一次参考图，重试和模型切换时复用。
+      const loadImages = cachedImageLoader(args.images ?? []);
+      return execute(args, config.geminiModels, (model) =>
         generateGeminiImage(config, {
           prompt: args.prompt,
           model,
           images: args.images,
           aspectRatio: args.aspect_ratio,
+          loadImages,
         }),
-      ),
+      );
+    },
   );
 }
