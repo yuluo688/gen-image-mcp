@@ -65,7 +65,7 @@ Command-line arguments override environment variables.
 
 | Environment variable | CLI option | Description |
 | --- | --- | --- |
-| `GEN_IMAGE_BASE_URL` | `--base-url` | Required full HTTP/HTTPS root URL, without credentials, query or fragment; do not supply a specific image endpoint |
+| `GEN_IMAGE_BASE_URL` | `--base-url` | Required full HTTP/HTTPS root URL, without credentials, query or fragment; do not supply a specific image endpoint (a trailing `/v1` is tolerated and stripped) |
 | `GEN_IMAGE_API_KEY` | `--api-key` | Required non-empty API key |
 | `GEN_IMAGE_MODEL` | `--model` | Comma-separated Images models, in selection order |
 | `GEN_IMAGE_GEMINI_MODEL` | `--gemini-model` | Comma-separated Gemini image models, in selection order |

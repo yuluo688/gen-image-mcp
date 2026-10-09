@@ -5,6 +5,7 @@ import {
   postJson,
   UpstreamError,
   upstreamHttpError,
+  type HttpJsonResult,
 } from "../shared/http.js";
 import { asRecord } from "../shared/object.js";
 
@@ -34,6 +35,34 @@ export function parseImagesResponse(payload: unknown): DecodedImage[] {
   return images;
 }
 
+// 部分上游（如官方 OpenAI gpt-image 系列）不接受 response_format；
+// 首次被 400 拒绝后去掉该参数重试，并按 baseUrl+model 记住，后续请求不再携带。
+const responseFormatUnsupported = new Set<string>();
+
+function responseFormatKey(client: ImagesClient, model: string): string {
+  return `${client.baseUrl}\n${model}`;
+}
+
+export function rejectsResponseFormat(result: HttpJsonResult): boolean {
+  return (
+    result.status === 400 && /response[_\s-]?format/i.test(result.text)
+  );
+}
+
+async function withResponseFormatFallback(
+  client: ImagesClient,
+  model: string,
+  send: (includeResponseFormat: boolean) => Promise<HttpJsonResult>,
+): Promise<HttpJsonResult> {
+  const key = responseFormatKey(client, model);
+  if (responseFormatUnsupported.has(key)) return send(false);
+  const first = await send(true);
+  if (!rejectsResponseFormat(first)) return first;
+  const second = await send(false);
+  if (second.ok) responseFormatUnsupported.add(key);
+  return second;
+}
+
 export type GenerateImagesInput = {
   prompt: string;
   model: string;
@@ -58,12 +87,16 @@ export async function generateImages(
   if (input.quality) body.quality = input.quality;
   if (input.outputFormat) body.output_format = input.outputFormat;
 
-  const result = await postJson(
-    `${client.baseUrl}/v1/images/generations`,
-    body,
-    {
-      apiKey: client.apiKey,
-      timeoutMs: client.timeoutMs,
+  const result = await withResponseFormatFallback(
+    client,
+    input.model,
+    (includeResponseFormat) => {
+      const payload = { ...body };
+      if (!includeResponseFormat) delete payload.response_format;
+      return postJson(`${client.baseUrl}/v1/images/generations`, payload, {
+        apiKey: client.apiKey,
+        timeoutMs: client.timeoutMs,
+      });
     },
   );
   if (!result.ok)
@@ -95,33 +128,44 @@ export async function editImages(
     throw new Error("edit_image requires at least one input image");
   assertImageCount(input.images.length);
 
-  const form = new FormData();
-  form.append("prompt", input.prompt);
-  form.append("model", input.model);
-  form.append("response_format", "b64_json");
-  if (input.size) form.append("size", input.size);
-  if (input.quality) form.append("quality", input.quality);
-
-  // 上游要求重复的 image 字段，而不是将文件数组序列化为 JSON。
+  // 本地文件只读一次；response_format 回退重试时复用同一批 Blob。
+  const files: Array<{ field: "image" | "mask"; blob: Blob; name: string }> =
+    [];
   for (const imagePath of input.images) {
     const file = await readLocalImage(imagePath, input.cwd);
-    const blob = new Blob([new Uint8Array(file.bytes)], {
-      type: file.mimeType,
+    files.push({
+      field: "image",
+      blob: new Blob([new Uint8Array(file.bytes)], { type: file.mimeType }),
+      name: file.name,
     });
-    form.append("image", blob, file.name);
   }
   if (input.mask) {
     const mask = await readLocalImage(input.mask, input.cwd);
-    const blob = new Blob([new Uint8Array(mask.bytes)], {
-      type: mask.mimeType,
+    files.push({
+      field: "mask",
+      blob: new Blob([new Uint8Array(mask.bytes)], { type: mask.mimeType }),
+      name: mask.name,
     });
-    form.append("mask", blob, mask.name);
   }
 
-  const result = await postForm(`${client.baseUrl}/v1/images/edits`, form, {
-    apiKey: client.apiKey,
-    timeoutMs: client.timeoutMs,
-  });
+  const result = await withResponseFormatFallback(
+    client,
+    input.model,
+    (includeResponseFormat) => {
+      const form = new FormData();
+      form.append("prompt", input.prompt);
+      form.append("model", input.model);
+      if (includeResponseFormat) form.append("response_format", "b64_json");
+      if (input.size) form.append("size", input.size);
+      if (input.quality) form.append("quality", input.quality);
+      // 上游要求重复的 image 字段，而不是将文件数组序列化为 JSON。
+      for (const file of files) form.append(file.field, file.blob, file.name);
+      return postForm(`${client.baseUrl}/v1/images/edits`, form, {
+        apiKey: client.apiKey,
+        timeoutMs: client.timeoutMs,
+      });
+    },
+  );
   if (!result.ok)
     throw upstreamHttpError(result, "POST /v1/images/edits");
   const images = parseImagesResponse(result.json);

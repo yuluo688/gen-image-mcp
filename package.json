@@ -1,7 +1,7 @@
 {
   "name": "gen-image-mcp",
   "mcpName": "io.github.yuluo688/gen-image-mcp",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "license": "MIT",
   "description": "Local MCP for OpenAI-compatible and Gemini image generation, editing, and automatic model fallback",
   "keywords": [
@@ -39,7 +39,7 @@
   },
   "type": "module",
   "files": [
-    "dist",
+    "dist/**/*.js",
     "README.md",
     "README.en.md",
     "LICENSE"

@@ -20,7 +20,15 @@ Use the absolute saved path returned by the tool. Running through `npx` does not
 
 **Which base URL should I use?**
 
-Use the service root, without `/v1` and without a specific image endpoint. The server appends `/v1/images/generations`, `/v1/images/edits` and `/v1/chat/completions` itself. For a gateway at `https://gw.example`, use `https://gw.example`, not `https://gw.example/v1`.
+Use the service root, without `/v1` and without a specific image endpoint. The server appends `/v1/images/generations`, `/v1/images/edits` and `/v1/chat/completions` itself. For a gateway at `https://gw.example`, use `https://gw.example`, not `https://gw.example/v1`. Since 0.2.3 a single trailing `/v1` is stripped automatically, so `https://gw.example/v1` also works.
+
+**Does it work with official OpenAI `gpt-image` models?**
+
+Requests send `response_format: "b64_json"` by default, which most OpenAI-compatible gateways need. Some upstreams (such as official OpenAI `gpt-image` models) reject that parameter; since 0.2.3, when the upstream answers 400 and mentions `response_format`, the request is retried once without it, and that model skips the parameter for the rest of the session.
+
+**Which input images are accepted?**
+
+`images` and `mask` must be PNG, JPEG, WebP or GIF files (detected from file content, not the extension), up to 50 MB each. Other files are rejected before anything is sent upstream.
 
 **Can the Images and Gemini groups use different providers?**
 
