@@ -18,7 +18,7 @@ import {
   validateOutputFilename,
   writeImages,
 } from "../storage/save.js";
-import { UpstreamError } from "../shared/http.js";
+import { redactSecret, UpstreamError } from "../shared/http.js";
 import {
   errorResult,
   successResult,
@@ -105,7 +105,10 @@ export function registerTools(
         buildSummary(startedAt, attempts, switches, successfulModel),
       );
     } catch (err) {
-      const text = err instanceof Error ? err.message : String(err);
+      const text = redactSecret(
+        err instanceof Error ? err.message : String(err),
+        config.apiKey,
+      );
       process.stderr.write(`${text}\n`);
       const summary = buildSummary(
         startedAt,

@@ -285,6 +285,23 @@ export async function withSameModelRetry<T>(
   }
 }
 
+// 上游错误正文可能回显请求里的 Key；进入日志或返回给客户端前统一打码。
+export function redactSecret(text: string, secret: string): string {
+  if (!secret || secret.length < 4) return text;
+  return text.split(secret).join("[REDACTED]");
+}
+
+// undici 的 fetch 只抛出 "fetch failed"，真正原因（ECONNREFUSED、证书错误等）在 cause 里。
+export function networkErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  const cause = err instanceof Error ? err.cause : undefined;
+  if (!(cause instanceof Error)) return message;
+  const code = (cause as NodeJS.ErrnoException).code;
+  const detail = [code, cause.message].filter(Boolean).join(" ");
+  if (!detail || message.includes(detail)) return message;
+  return `${message}: ${detail}`;
+}
+
 // JSON 与 multipart 共用超时及响应解析，避免两条请求链路的行为逐渐分叉。
 async function post(
   url: string,
@@ -303,7 +320,9 @@ async function post(
       body,
       signal: controller.signal,
     });
-    const text = await res.text();
+    const raw = await res.text();
+    // 只对失败响应打码：成功响应体是图片数据，无需也不应改写。
+    const text = res.ok ? raw : redactSecret(raw, opts.apiKey);
     let json: unknown = undefined;
     if (text) {
       try {
@@ -327,7 +346,7 @@ async function post(
         { category: "timeout", cause: err },
       );
     }
-    throw new UpstreamError(err instanceof Error ? err.message : String(err), {
+    throw new UpstreamError(networkErrorMessage(err), {
       category: "network",
       cause: err,
     });

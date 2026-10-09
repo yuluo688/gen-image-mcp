@@ -65,7 +65,7 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 
 | 环境变量 | 命令行参数 | 说明 |
 | --- | --- | --- |
-| `GEN_IMAGE_BASE_URL` | `--base-url` | 必填，完整 HTTP/HTTPS 根地址；不含认证信息、查询参数和片段，不要填写具体图像端点 |
+| `GEN_IMAGE_BASE_URL` | `--base-url` | 必填，完整 HTTP/HTTPS 根地址；不含认证信息、查询参数和片段，不要填写具体图像端点（结尾多写的 `/v1` 会被自动去掉） |
 | `GEN_IMAGE_API_KEY` | `--api-key` | 必填，非空 API Key |
 | `GEN_IMAGE_MODEL` | `--model` | Images 模型列表，逗号分隔，按顺序使用 |
 | `GEN_IMAGE_GEMINI_MODEL` | `--gemini-model` | Gemini 图像模型列表，逗号分隔，按顺序使用 |

@@ -20,7 +20,15 @@
 
 **服务地址应该填什么？**
 
-填服务的根地址，不要带 `/v1`，也不要填写具体图像端点。服务会自动拼接 `/v1/images/generations`、`/v1/images/edits` 和 `/v1/chat/completions`。例如网关地址为 `https://gw.example` 时，填写 `https://gw.example`，而不是 `https://gw.example/v1`。
+填服务的根地址，不要带 `/v1`，也不要填写具体图像端点。服务会自动拼接 `/v1/images/generations`、`/v1/images/edits` 和 `/v1/chat/completions`。例如网关地址为 `https://gw.example` 时，填写 `https://gw.example`，而不是 `https://gw.example/v1`。从 0.2.3 起，结尾多写的一个 `/v1` 会被自动去掉，所以填 `https://gw.example/v1` 也能用。
+
+**能直接用官方 OpenAI 的 `gpt-image` 模型吗？**
+
+请求默认带 `response_format: "b64_json"`，大多数 OpenAI 兼容网关需要它。部分上游（如官方 OpenAI 的 `gpt-image` 系列）不接受这个参数；从 0.2.3 起，如果上游返回 400 且错误里提到 `response_format`，会去掉该参数自动重试一次，本次会话中该模型之后也不再携带。
+
+**输入图片支持哪些格式？**
+
+`images` 和 `mask` 必须是 PNG、JPEG、WebP 或 GIF（按文件内容识别，不看扩展名），单个文件不超过 50 MB。其他文件会在发往上游之前直接拒绝。
 
 **Images 和 Gemini 两组模型可以使用不同的服务商吗？**
 

@@ -92,7 +92,8 @@ export function loadConfig(
   }
 
   return {
-    baseUrl: baseUrl.replace(/\/+$/, ""),
+    // 服务会自行拼接 /v1/...；容忍误填的结尾 /v1，避免请求变成 /v1/v1/...。
+    baseUrl: baseUrl.replace(/\/+$/, "").replace(/\/v1$/i, ""),
     apiKey,
     models,
     geminiModels,
