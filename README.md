@@ -96,6 +96,6 @@ claude mcp add --env GEN_IMAGE_BASE_URL=https://your-gateway.example \
 
 ## 详细文档
 
-[配置说明](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/configuration.zh.md) · [模型选择、失败切换与重试](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/fallback.zh.md) · [工具参数参考](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/tools.zh.md) · [文件、输出与 structuredContent](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/output.zh.md) · [常见问题](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/faq.zh.md)
+[配置说明](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/configuration.zh.md) · [模型选择、失败切换与重试](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/fallback.zh.md) · [工具参数参考](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/tools.zh.md) · [文件、输出与 structuredContent](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/output.zh.md) · [常见问题](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/faq.zh.md) · [参与开发](https://github.com/yuluo688/gen-image-mcp/blob/main/CONTRIBUTING.md)
 
 **许可证**：[MIT](https://github.com/yuluo688/gen-image-mcp/blob/main/LICENSE) © 2026 yuluo688。不替代上游模型服务条款，也不约定生成图片的权利归属。

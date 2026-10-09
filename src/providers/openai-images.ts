@@ -1,5 +1,10 @@
 import { decodeBase64Image, type DecodedImage } from "../images/decode.js";
-import { assertImageCount, readLocalImage } from "../images/files.js";
+import {
+  assertImageCount,
+  cachedImageLoader,
+  type LocalFile,
+  type LocalImageLoader,
+} from "../images/files.js";
 import {
   postForm,
   postJson,
@@ -118,7 +123,22 @@ export type EditImagesInput = {
   size?: string;
   quality?: "low" | "medium" | "high" | "auto";
   cwd?: string;
+  /** 由调用方在一次工具调用内共享的读取器；缺省时按 images/mask/cwd 新建。 */
+  loadImages?: LocalImageLoader;
+  loadMask?: LocalImageLoader;
 };
+
+// Blob 按文件对象缓存，重试和模型切换时不重复复制图片字节。
+const blobCache = new WeakMap<LocalFile, Blob>();
+
+function cachedBlob(file: LocalFile): Blob {
+  let blob = blobCache.get(file);
+  if (blob === undefined) {
+    blob = new Blob([new Uint8Array(file.bytes)], { type: file.mimeType });
+    blobCache.set(file, blob);
+  }
+  return blob;
+}
 
 export async function editImages(
   client: ImagesClient,
@@ -128,24 +148,20 @@ export async function editImages(
     throw new Error("edit_image requires at least one input image");
   assertImageCount(input.images.length);
 
-  // 本地文件只读一次；response_format 回退重试时复用同一批 Blob。
+  // 本地文件每次工具调用只读一次；同模型重试、模型切换和 response_format
+  // 回退都复用同一批 Blob。
+  const loadImages =
+    input.loadImages ?? cachedImageLoader(input.images, input.cwd);
+  const loadMask =
+    input.loadMask ??
+    (input.mask ? cachedImageLoader([input.mask], input.cwd) : undefined);
   const files: Array<{ field: "image" | "mask"; blob: Blob; name: string }> =
     [];
-  for (const imagePath of input.images) {
-    const file = await readLocalImage(imagePath, input.cwd);
-    files.push({
-      field: "image",
-      blob: new Blob([new Uint8Array(file.bytes)], { type: file.mimeType }),
-      name: file.name,
-    });
+  for (const file of await loadImages()) {
+    files.push({ field: "image", blob: cachedBlob(file), name: file.name });
   }
-  if (input.mask) {
-    const mask = await readLocalImage(input.mask, input.cwd);
-    files.push({
-      field: "mask",
-      blob: new Blob([new Uint8Array(mask.bytes)], { type: mask.mimeType }),
-      name: mask.name,
-    });
+  for (const file of loadMask ? await loadMask() : []) {
+    files.push({ field: "mask", blob: cachedBlob(file), name: file.name });
   }
 
   const result = await withResponseFormatFallback(

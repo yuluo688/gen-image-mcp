@@ -96,6 +96,6 @@ Restart the client; it should discover 4 tools. Then just ask: *"Generate a 16:9
 
 ## Detailed docs
 
-[Configuration](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/configuration.en.md) · [Model selection, fallback & retries](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/fallback.en.md) · [Tool reference](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/tools.en.md) · [Files, output & structuredContent](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/output.en.md) · [Troubleshooting / FAQ](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/faq.en.md)
+[Configuration](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/configuration.en.md) · [Model selection, fallback & retries](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/fallback.en.md) · [Tool reference](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/tools.en.md) · [Files, output & structuredContent](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/output.en.md) · [Troubleshooting / FAQ](https://github.com/yuluo688/gen-image-mcp/blob/main/docs/faq.en.md) · [Contributing](https://github.com/yuluo688/gen-image-mcp/blob/main/CONTRIBUTING.md#english)
 
 **License**: [MIT](https://github.com/yuluo688/gen-image-mcp/blob/main/LICENSE) © 2026 yuluo688. Does not replace your upstream provider's terms or determine rights to generated images.

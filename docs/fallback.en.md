@@ -11,6 +11,7 @@
 - Each new call starts from the first or explicitly selected model, without permanently changing the order.
 - Per-call `auto_fallback` overrides the global switch. When false, only the selected model is attempted (capacity/rate-limit same-model retries still apply).
 - Invalid arguments, local input errors and save failures do not trigger fallback.
+- Input images (`images`, `mask`) are read once per tool call; same-model retries and model fallback reuse the same bytes (since 0.2.3).
 - Models never switch across API groups. Calling a tool with an unconfigured group returns an error.
 
 Allow up to 3 requests and two backoff waits per model in the client's timeout; multiply by the number of models when fallback is enabled and leave room for file I/O. Without `Retry-After`, waits default to 400ms and 800ms, capped at 5 seconds per wait. A generic 503 is not treated as confirmed capacity exhaustion. Additional upstream requests may incur additional charges.

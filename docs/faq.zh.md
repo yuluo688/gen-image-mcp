@@ -30,6 +30,15 @@
 
 `images` 和 `mask` 必须是 PNG、JPEG、WebP 或 GIF（按文件内容识别，不看扩展名），单个文件不超过 50 MB。其他文件会在发往上游之前直接拒绝。
 
+**`generate_gemini_image` 能直连 Google 官方 Gemini API 吗？**
+
+目前不能，需要经过 OpenAI 兼容网关（如 CLIProxyAPI、new-api、LiteLLM）。原因有两点：
+
+- 路径不同。本服务请求 `<根地址>/v1/chat/completions`，Google 的 OpenAI 兼容接口在 `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`。
+- 即使改成 Google 的路径也拿不到图。Google 的 OpenAI 兼容层目前不支持在 Chat Completions 里返回图像模型的输出（会报 `Unhandled generated data mime type`），官方只在 `/v1beta/openai/images/generations` 上支持 Gemini 图像模型。Vertex AI 的兼容接口虽然能返回图片，但需要每小时过期的 Google Cloud 访问令牌，不适合放进 MCP 配置。
+
+所以只加一个“自定义路径”的配置并不能让直连可用，本项目暂不提供该选项。
+
 **Images 和 Gemini 两组模型可以使用不同的服务商吗？**
 
 不可以。两组模型共用同一个 `GEN_IMAGE_BASE_URL` 和 `GEN_IMAGE_API_KEY`。

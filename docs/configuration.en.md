@@ -74,4 +74,6 @@ Command-line arguments override environment variables.
 
 Model lists must not contain duplicates or empty entries. Invalid URLs, keys or settings cause errors instead of silently selecting a default service or model.
 
+`generate_gemini_image` always calls `<base URL>/v1/chat/completions`. It needs an OpenAI-compatible gateway (such as CLIProxyAPI, new-api or LiteLLM) that returns Gemini image output in Chat Completions format; calling Google's official endpoint directly is not supported, see the [FAQ](faq.en.md) for why.
+
 Model selection, fallback and retry rules are described in [fallback.en.md](fallback.en.md).

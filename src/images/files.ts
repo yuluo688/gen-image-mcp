@@ -61,6 +61,28 @@ export async function readLocalImage(
   };
 }
 
+export type LocalImageLoader = () => Promise<LocalFile[]>;
+
+// 一次工具调用内只读一次本地图片：同模型重试、模型切换和 response_format
+// 回退都复用同一批内容。读取失败的 Promise 也会被缓存，不会反复读盘。
+export function cachedImageLoader(
+  paths: readonly string[],
+  cwd?: string,
+): LocalImageLoader {
+  let pending: Promise<LocalFile[]> | undefined;
+  return () => {
+    pending ??= (async () => {
+      assertImageCount(paths.length);
+      const files: LocalFile[] = [];
+      for (const inputPath of paths) {
+        files.push(await readLocalImage(inputPath, cwd));
+      }
+      return files;
+    })();
+    return pending;
+  };
+}
+
 export function toDataUrl(bytes: Buffer, mimeType: string): string {
   return `data:${mimeType};base64,${bytes.toString("base64")}`;
 }

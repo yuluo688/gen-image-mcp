@@ -74,4 +74,6 @@ API Key 建议通过 MCP 客户端的环境变量配置传入，避免出现在�
 
 模型名称不能重复，也不能包含空项。URL、Key 或配置值无效时直接报错，不会替换成默认服务或模型。
 
+`generate_gemini_image` 固定请求 `<根地址>/v1/chat/completions`，需要 OpenAI 兼容网关（如 CLIProxyAPI、new-api、LiteLLM）把 Gemini 图像模型的输出转成 Chat Completions 格式；不支持直连 Google 官方接口，原因见 [常见问题](faq.zh.md)。
+
 模型选择、失败切换与重试规则见 [fallback.zh.md](fallback.zh.md)。
