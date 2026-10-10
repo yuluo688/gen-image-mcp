@@ -1,0 +1,78 @@
+{
+  "name": "gen-image-mcp",
+  "mcpName": "io.github.yuluo688/gen-image-mcp",
+  "version": "0.2.3",
+  "license": "MIT",
+  "description": "Local MCP for OpenAI-compatible and Gemini image generation, editing, and automatic model fallback",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "image-generation",
+    "image-editing",
+    "openai-images",
+    "gemini",
+    "claude-code",
+    "cursor",
+    "mcp-server",
+    "ai-image",
+    "text-to-image",
+    "image-to-image",
+    "nano-banana",
+    "nano-banana-pro",
+    "gpt-image",
+    "gpt-image-1",
+    "gpt-image-2",
+    "gemini-image",
+    "openai",
+    "openai-compatible",
+    "model-fallback",
+    "ai-agent",
+    "vscode",
+    "cline",
+    "claude-desktop",
+    "opencode",
+    "stdio"
+  ],
+  "homepage": "https://github.com/yuluo688/gen-image-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/yuluo688/gen-image-mcp/issues"
+  },
+  "type": "module",
+  "files": [
+    "dist/**/*.js",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuluo688/gen-image-mcp.git"
+  },
+  "bin": {
+    "gen-image-mcp": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "npm run clean && tsc",
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "test": "npm run build && node --experimental-strip-types --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@types/node": "^24.5.2",
+    "typescript": "^5.9.2"
+  }
+}

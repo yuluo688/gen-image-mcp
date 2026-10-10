@@ -1,0 +1,119 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/schemas/mcpb-manifest-v0.3.schema.json",
+  "manifest_version": "0.3",
+  "name": "gen-image-mcp",
+  "display_name": "gen-image MCP",
+  "version": "0.2.3",
+  "description": "Local MCP for OpenAI-compatible and Gemini image generation, editing, and automatic model fallback.",
+  "long_description": "Generate and edit images from Claude Code, Cursor, VS Code, Claude Desktop and other MCP clients through any OpenAI-compatible gateway. Supports OpenAI Images API models (e.g. gpt-image-2) and Gemini image models (e.g. gemini-3.1-flash-image / Nano Banana), saves results straight into your project, and can automatically fall back to the next model when one fails.",
+  "author": {
+    "name": "yuluo688",
+    "url": "https://github.com/yuluo688"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yuluo688/gen-image-mcp"
+  },
+  "homepage": "https://github.com/yuluo688/gen-image-mcp#readme",
+  "documentation": "https://github.com/yuluo688/gen-image-mcp/blob/main/docs/configuration.en.md",
+  "support": "https://github.com/yuluo688/gen-image-mcp/issues",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "image-generation",
+    "image-editing",
+    "gpt-image",
+    "gemini",
+    "nano-banana",
+    "openai-compatible",
+    "model-fallback"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "server/launch.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/server/launch.js"
+      ],
+      "env": {
+        "GEN_IMAGE_BASE_URL": "${user_config.baseUrl}",
+        "GEN_IMAGE_API_KEY": "${user_config.apiKey}",
+        "GEN_IMAGE_MODEL": "${user_config.model}",
+        "GEN_IMAGE_GEMINI_MODEL": "${user_config.geminiModel}",
+        "GEN_IMAGE_AUTO_FALLBACK": "${user_config.autoFallback}",
+        "GEN_IMAGE_TIMEOUT_MS": "${user_config.timeoutMs}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "list_models",
+      "description": "List configured model groups and the tools that use them. Returns configuration only; no network calls."
+    },
+    {
+      "name": "generate_image",
+      "description": "Generate images with the OpenAI Images API (POST /v1/images/generations), e.g. gpt-image-2, and save them to a local path."
+    },
+    {
+      "name": "edit_image",
+      "description": "Edit or combine local images with the OpenAI Images API (POST /v1/images/edits)."
+    },
+    {
+      "name": "generate_gemini_image",
+      "description": "Generate or edit images with a Gemini image model via POST /v1/chat/completions (e.g. gemini-3.1-flash-image / Nano Banana)."
+    }
+  ],
+  "user_config": {
+    "baseUrl": {
+      "type": "string",
+      "title": "API base URL",
+      "description": "Root URL of your OpenAI-compatible gateway, e.g. https://your-gateway.example.com (a trailing /v1 is accepted).",
+      "required": true
+    },
+    "apiKey": {
+      "type": "string",
+      "title": "API key",
+      "description": "API key for the gateway.",
+      "sensitive": true,
+      "required": true
+    },
+    "model": {
+      "type": "string",
+      "title": "OpenAI Images models",
+      "description": "Comma-separated OpenAI Images API models in fallback order, e.g. gpt-image-2. Set this and/or the Gemini models.",
+      "required": false
+    },
+    "geminiModel": {
+      "type": "string",
+      "title": "Gemini image models",
+      "description": "Comma-separated Gemini image models in fallback order, e.g. gemini-3.1-flash-image. Set this and/or the OpenAI models.",
+      "required": false
+    },
+    "autoFallback": {
+      "type": "boolean",
+      "title": "Automatic model fallback",
+      "description": "Try the next model in the list when one fails.",
+      "default": false,
+      "required": false
+    },
+    "timeoutMs": {
+      "type": "number",
+      "title": "Request timeout (ms)",
+      "description": "Per-request timeout in milliseconds.",
+      "default": 120000,
+      "min": 1,
+      "required": false
+    }
+  },
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  }
+}

@@ -49,3 +49,7 @@ Tests mock `fetch`; no real API key or network access is needed.
 
 - Update the zh and en docs under `docs/` when behavior changes.
 - Keep the version in `package.json`, `package-lock.json` and `server.json` in sync when releasing.
+
+## Publishing
+
+Release channels and the per-release checklist are in [docs/PUBLISHING.md](docs/PUBLISHING.md) (发布渠道与发版流程).
