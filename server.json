@@ -51,6 +51,13 @@
           "isRequired": false,
           "isSecret": false,
           "format": "string"
+        },
+        {
+          "name": "GEN_IMAGE_TIMEOUT_MS",
+          "description": "Optional per-request upstream timeout in milliseconds; defaults to 120000. Positive integer, maximum 2147483647.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "number"
         }
       ]
     }
